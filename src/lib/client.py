@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 def client_upload(args):
     try:
         logger.setLevel(c.calc_log_level(args.verbose, args.quiet))
+
         srv_name, srv_port = args.host, args.port
         c.validate_addr(srv_name, srv_port)
         c.validate_file(args.src)

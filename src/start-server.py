@@ -4,6 +4,7 @@ from lib.server import run_server
 
 def main():
     logging.basicConfig(format='[%(levelname)s] %(message)s')
+
     parser = argparse.ArgumentParser(
             prog='TPServer',
             description='Server for the file transfer app')

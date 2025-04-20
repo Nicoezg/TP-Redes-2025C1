@@ -1,4 +1,3 @@
-import os
 import logging
 from lib import common as c
 

@@ -15,3 +15,15 @@ def client_upload(args):
         logger.info("Upload client run successful!")
     except Exception as e:
         logger.error(f"Client error: {e}")
+
+def client_download(args):
+    try:
+        logger.setLevel(c.calc_log_level(args.verbose, args.quiet))
+
+        srv_name, srv_port = args.host, args.port
+        c.validate_addr(srv_name, srv_port)
+
+        logger.info("Download client run successful!")
+    except Exception as e:
+        logger.error(f"Client error: {e}")
+

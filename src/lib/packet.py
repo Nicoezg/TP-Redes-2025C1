@@ -26,5 +26,5 @@ class Packet:
         """
 
         # big-endian
-        return pack("!1H1H{}s".format(len(self.data) - 4),
+        return pack("!1H1H{}s".format(len(self.data)),
                     self.seq, self.ack, self.data)

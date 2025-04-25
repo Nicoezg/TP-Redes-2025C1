@@ -25,4 +25,3 @@ def client_download(args):
         logger.info("Download client run successful!")
     except Exception as e:
         logger.error(f"Client error: {e}")
-

@@ -1,10 +1,10 @@
 import argparse
 import logging
-from lib.server import run_server
+from lib.server import Server
 
 def main():
     logging.basicConfig(format='[%(levelname)s] %(message)s')
-
+    logger = logging.getLogger(__name__)
     parser = argparse.ArgumentParser(
             prog='TPServer',
             description='Server for the file transfer app')
@@ -18,8 +18,16 @@ def main():
 
     args = parser.parse_args()
 
+    if args.verbose:
+        logger.setLevel(logging.INFO)
+    elif args.quiet:
+        logger.setLevel(logging.CRITICAL)
+    else:
+        logger.setLevel(logging.ERROR)
+
     try:
-        run_server(args)
+        server = Server(args.host, args.port, args.storage, logger)
+        server.run_server()
     except KeyboardInterrupt:
         print("Shutting down...")
 

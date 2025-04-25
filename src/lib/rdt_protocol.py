@@ -3,10 +3,13 @@ import threading
 import errno
 from queue import Queue, Empty
 
+from lib.packet import Packet
+
 READ_MODE = 0
 WRITE_MODE = 1
 CHUNK_SIZE = 1024
 MAX_TIMEOUTS = 5
+
 
 class GBNPeer:
     def __init__(self, addr, mode, win_size=10, timeout=2.0):
@@ -52,9 +55,8 @@ class GBNPeer:
     def recv(self, block=True, timeout=None):
         return self.queue.get(block=block, timeout=timeout)
 
-    def _send_packet(self, seq, data: str):
-        packet = f"{seq}|{data}".encode()
-        self.sock.sendto(packet, self.addr)
+    def _send_packet(self, packet: Packet):
+        self.sock.sendto(packet.to_bytes(), self.addr)
 
     def _fill_window(self):
         while self.next_seq < self.base + self.win_size:
@@ -64,7 +66,8 @@ class GBNPeer:
                 break
 
             self.send_buffer[self.next_seq] = data
-            self._send_packet(self.next_seq, data)
+            packet = Packet(self.next_seq, 0, data)
+            self._send_packet(packet)
             self.next_seq += 1
 
     def _sender_loop(self):
@@ -78,9 +81,10 @@ class GBNPeer:
 
             try:
                 ack_data, _ = self.sock.recvfrom(CHUNK_SIZE)
+                ack_packet = Packet.from_bytes(ack_data)
 
                 self.timeout_count = 0
-                ack = int(ack_data.decode())
+                ack = ack_packet.ack
                 if ack >= self.base and ack < self.next_seq:
                     # If is valid ACK update the send buffer
                     for seq in range(self.base, ack + 1):
@@ -93,39 +97,40 @@ class GBNPeer:
 
                 # Retransmit window
                 for seq in range(self.base, self.next_seq):
-                    self._send_packet(seq, self.send_buffer[seq])
-
-
+                    packet = Packet(seq, 0, self.send_buffer[seq])
+                    self._send_packet(packet)
 
     def _recv_loop(self):
         while self.running:
             try:
                 data, addr = self.sock.recvfrom(CHUNK_SIZE)
             except OSError as e:
-                 # errno 9: Bad file descriptor (socket closed)
+                # errno 9: Bad file descriptor (socket closed)
                 if e.errno == errno.EBADF and not self.running:
                     return
                 else:
                     raise
 
             try:
-                raw = data.decode()
-                seq_str, msg = raw.split("|", 1)
-                seq = int(seq_str)
-            except:
+                packet = Packet.from_bytes(data)
+                seq = packet.seq
+                msg = packet.data
+            except Exception:
                 continue
 
             if seq == self.next_seq:
                 self.next_seq += 1
                 self.queue.put(msg)
 
-                ack_packet = str(self.next_seq - 1).encode()
-                self.sock.sendto(ack_packet, addr)
+                ack = self.next_seq - 1
+                ack_packet = Packet(0, ack)  # "empty" packet (ack)
+                self.sock.sendto(ack_packet.to_bytes(), addr)
 
             else:
                 expected_seq = (self.next_seq - 1) if self.next_seq > 0 else 0
-                ack_packet = str(expected_seq).encode()
-                self.sock.sendto(ack_packet, addr)
+                ack = expected_seq
+                ack_packet = Packet(0, ack)  # "empty" packet (ack)
+                self.sock.sendto(ack_packet.to_bytes(), addr)
 
     def all_sent(self):
         return self.queue.empty() and not self.send_buffer
@@ -135,4 +140,3 @@ class GBNPeer:
         self.sock.close()
         with self.cond:
             self.cond.notify_all()
-

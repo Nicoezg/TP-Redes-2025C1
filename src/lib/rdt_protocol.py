@@ -53,6 +53,10 @@ class GBNPeer:
             self.cond.notify()
 
     def recv(self, block=True, timeout=None):
+        if not self.mode == READ_MODE:
+            raise Exception("Invalid action. Not in read mode.")
+        if not self.running:
+            raise Exception("Receiver not running.")
         return self.queue.get(block=block, timeout=timeout)
 
     def _send_packet(self, packet: Packet):
@@ -66,7 +70,7 @@ class GBNPeer:
                 break
 
             self.send_buffer[self.next_seq] = data
-            packet = Packet(self.next_seq, 0, data)
+            packet = Packet(self.next_seq, 0, data.encode())
             self._send_packet(packet)
             self.next_seq += 1
 
@@ -78,7 +82,6 @@ class GBNPeer:
                 # Wait if nothing to do
                 if self.queue.empty() and self.base == self.next_seq:
                     self.cond.wait()
-
             try:
                 ack_data, _ = self.sock.recvfrom(CHUNK_SIZE)
                 ack_packet = Packet.from_bytes(ack_data)
@@ -93,6 +96,8 @@ class GBNPeer:
             except s.timeout:
                 self.timeout_count += 1
                 if self.timeout_count >= MAX_TIMEOUTS:
+                    # TODO: Something more graceful. Could have problems with self.stop()
+                    self.running = False
                     return
 
                 # Retransmit window
@@ -125,7 +130,6 @@ class GBNPeer:
                 ack = self.next_seq - 1
                 ack_packet = Packet(0, ack)  # "empty" packet (ack)
                 self.sock.sendto(ack_packet.to_bytes(), addr)
-
             else:
                 expected_seq = (self.next_seq - 1) if self.next_seq > 0 else 0
                 ack = expected_seq

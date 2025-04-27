@@ -47,12 +47,16 @@ def client_download(args):
         
         rdt_protocol.send(file_protocol.encode_request(file_protocol.DOWNLOAD, args.name, 0 if args.protocol == "saw" else 1))
 
+        size=rdt_protocol.recv()
+        size = file_protocol.decode_first_msg(size)
+        size_act = 0
         with open(args.name, 'wb') as file:
             while True:
                 data = rdt_protocol.recv()
-                if not data:
+                if not data or size<=size_act:
                     break
                 file.write(data)                
+                size_act += len(data)
 
         logger.info("Download client run successful!")
     except Exception as e:

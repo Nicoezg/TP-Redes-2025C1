@@ -144,3 +144,6 @@ class GBNPeer:
         self.sock.close()
         with self.cond:
             self.cond.notify_all()
+    
+    def is_write_mode(self):
+        return self.mode == WRITE_MODE

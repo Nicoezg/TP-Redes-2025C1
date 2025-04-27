@@ -1,4 +1,6 @@
 FILE_NAME_START = 2
+UPLOAD = 0
+DOWNLOAD = 1
 
 """
 The request format is as follows:

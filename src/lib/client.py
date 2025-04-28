@@ -66,7 +66,7 @@ class Client:
                     rdt.send(data)
                 
                 self.logger.info("Upload client run successful!")
-            while (rdt.all_sent):
+            while (not rdt.all_sent()):
                 pass
 
 

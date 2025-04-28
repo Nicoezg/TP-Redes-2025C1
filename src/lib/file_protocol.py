@@ -61,14 +61,11 @@ def encode_request(op, file_name, protocol):
     file_name = file_name.encode('utf-8')
     file_name_size = len(file_name)
 
-    data = bytes([op, file_name_size]) + file_name + bytes([protocol])
+    data = bytes([op, file_name_size]) + bytes(file_name) + bytes([protocol])
     return data
 
 
 def encode_first_msg(file_size, data):
-    """
-    Encodes the file size into 3 bytes and appends the data.
-    """
     return file_size.to_bytes(3, byteorder='big') + data
 
 

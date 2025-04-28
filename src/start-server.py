@@ -26,10 +26,11 @@ def main():
         logger.setLevel(logging.ERROR)
 
     try:
-        server = Server(args.host, args.port, args.storage, logger)
+        server = Server(args.host, args.port, args.storage, logger, args.protocol)
         server.run_server()
     except KeyboardInterrupt:
         print("Shutting down...")
+        server.stop_server()
 
 if __name__ == '__main__':
     main()

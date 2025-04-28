@@ -3,6 +3,8 @@ from struct import pack, unpack
 
 class Packet:
     def __init__(self, seq, ack, data=None):
+        if isinstance(data, str):
+            data = data.encode('utf-8')
         self.seq = seq
         self.ack = ack
         self.data = data if data is not None else bytes()
@@ -21,10 +23,5 @@ class Packet:
         return cls(seq, ack, data)
 
     def to_bytes(self):
-        """
-        Converts the packet instance to bytes (seq, ack, data)
-        """
-
-        # big-endian
-        return pack("!1H1H{}s".format(len(self.data)),
-                    self.seq, self.ack, self.data)
+        print(f"[DEBUG] Packet.to_bytes(): data type is {type(self.data)}")
+        return pack("!1H1H{}s".format(len(self.data)), self.seq, self.ack, self.data)

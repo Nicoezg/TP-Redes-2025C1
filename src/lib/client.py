@@ -1,5 +1,6 @@
 
 from logging import Logger
+import os
 from lib import common as c
 from lib import file_protocol
 from lib import rdt_protocol
@@ -14,20 +15,26 @@ class Client:
 
         self.logger = logger
 
-    def initial_connection(self,args):
+    def initial_connection(self, args, op):
         try:
             self.logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1)
+
+            c.validate_file(args.src)
+            file_size = os.path.getsize(args.src)
+
+            request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1, file_size if op == file_protocol.UPLOAD else 0)
+            # Si se quiere descargar un archivo, op = 1.
             self.sock.sendto(request, (self.ip, self.port))
 
             response, _ = self.sock.recvfrom(1024)
             print(response)
-            response_str = response.decode()
-            if not response_str.startswith("OK|"):
+            error_code, upload_port, file_size = file_protocol.decode_response(response)
+            if error_code != 0:
+                # Bla bla bla
                 raise Exception("Server did not accept upload")
+            self.upload_port = upload_port
 
-            self.upload_port = int(response_str.split("|")[1])
 
             self.logger.info(f"Server responded with OK. Upload port: {self.upload_port}")
             self.sock.close()
@@ -44,7 +51,6 @@ class Client:
 
             srv_name, srv_port = self.ip, self.port 
             c.validate_addr(srv_name, srv_port) 
-            c.validate_file(args.src)
 
             self.logger.info(f"Uploading {args.src} to {srv_name}:{upload_port} as {args.name}") 
 
@@ -55,10 +61,7 @@ class Client:
 
             with open(args.src, 'rb') as file:
                 file.seek(0, 2)
-                length = file.tell()
                 file.seek(0)
-                first_data = file.read(1000)
-                rdt.send(file_protocol.encode_first_msg(length, first_data))
                 while True:
                     data = file.read(1000)
                     if not data:

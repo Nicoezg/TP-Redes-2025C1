@@ -27,7 +27,7 @@ def main():
         logger.setLevel(logging.ERROR)
 
 
-    client.Client(args.host, args.name, args.port, args.protocol,logger).initial_connection(args)
+    client.Client(args.host, args.name, args.port, args.protocol,logger).initial_connection(args, 0)
 
 if __name__ == '__main__':
     main()

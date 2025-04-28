@@ -1,4 +1,5 @@
 from logging import Logger
+import os
 import socket
 import threading
 from lib import common as c
@@ -53,7 +54,8 @@ class Server:
                 break
 
     def new_client(self, data, addr):
-        op, file_name, proto = file_protocol.decode_request(data)
+        op, file_name, proto, file_size = file_protocol.decode_request(data)
+        error_code = 0
 
         if op == UPLOAD:
             self.logger.info(f"Client {addr} requested upload of {file_name}")
@@ -67,15 +69,21 @@ class Server:
 
             self.logger.info(f"Assigned port {upload_port} for upload from {addr}")
 
-            response = f"OK|{upload_port}".encode()
+            # Acá chequear por errores (si hay error settear error_code a un valor != 0)
+            response = file_protocol.encode_response(error_code, upload_port)
             self.sock.sendto(response, addr)
 
-            thread = threading.Thread(target=self.handle_upload, args=(peer, file_name, addr))
+            thread = threading.Thread(target=self.handle_upload, args=(peer, file_name, addr, file_size))
             self.threads[addr] = thread
             self.clients[addr] = peer
+        
+        elif op == DOWNLOAD:
+            # Fijarse que exista el path y demas (si hay error settear error_code a un valor != 0)
+            file_size = os.path.getsize(f"{self.storage}/{file_name}")
+            response = file_protocol.encode_response(error_code, 0, file_size)
+            
 
-    def handle_upload(self, peer, file_name, client_addr):
-        total_size = None
+    def handle_upload(self, peer, file_name, client_addr, file_size):
         received_size = 0
 
         with open(f"{self.storage}/{file_name}", "wb") as f:
@@ -85,11 +93,9 @@ class Server:
                     print(f"Received data: {data} from {client_addr}") 
                     if not data:
                         break
-                    if total_size is None:
-                        total_size, data = file_protocol.decode_file_size(data)
                     f.write(data)
                     received_size += len(data)
-                    if received_size >= total_size:
+                    if received_size >= file_size:
                         break
             
                 except Exception as e:

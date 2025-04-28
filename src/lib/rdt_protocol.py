@@ -21,6 +21,7 @@ class GBNPeer:
         self.sock = s.socket(s.AF_INET, s.SOCK_DGRAM)
         if self.mode == READ_MODE:
             self.sock.bind(self.addr)
+        
 
         # Set timeout for ACKs
         if self.mode == WRITE_MODE:
@@ -42,7 +43,7 @@ class GBNPeer:
         elif self.mode == WRITE_MODE:
             threading.Thread(target=self._sender_loop, daemon=True).start()
 
-    def send(self, data: str):
+    def send(self, data):
         if not self.mode == WRITE_MODE:
             raise Exception("Invalid action. Not in write mode.")
         if not self.running:
@@ -68,9 +69,10 @@ class GBNPeer:
                 data = self.queue.get_nowait()
             except Empty:
                 break
+            
 
             self.send_buffer[self.next_seq] = data
-            packet = Packet(self.next_seq, 0, data.encode())
+            packet = Packet(self.next_seq, 0, data)
             self._send_packet(packet)
             self.next_seq += 1
 
@@ -82,6 +84,8 @@ class GBNPeer:
                 # Wait if nothing to do
                 if self.queue.empty() and self.base == self.next_seq:
                     self.cond.wait()
+        
+
             try:
                 ack_data, _ = self.sock.recvfrom(CHUNK_SIZE)
                 ack_packet = Packet.from_bytes(ack_data)

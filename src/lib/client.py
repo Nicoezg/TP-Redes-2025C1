@@ -16,60 +16,62 @@ class Client:
 
     def initial_connection(self,args):
         try:
-             self.logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
-             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-             request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1)
-             self.sock.sendto(request, (self.ip, self.port))
+            self.logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1)
+            self.sock.sendto(request, (self.ip, self.port))
 
-             response, _ = self.sock.recvfrom(1024)
-             print(response)
-             response_str = response.decode()
-             if not response_str.startswith("OK|"):
-                 raise Exception("Server did not accept upload")
+            response, _ = self.sock.recvfrom(1024)
+            print(response)
+            response_str = response.decode()
+            if not response_str.startswith("OK|"):
+                raise Exception("Server did not accept upload")
 
-             self.upload_port = int(response_str.split("|")[1]) 
+            self.upload_port = int(response_str.split("|")[1])
 
-             self.logger.info(f"Server responded with OK. Upload port: {self.upload_port}")
-             self.sock.close()
-             self.client_upload(args, self.upload_port) 
+            self.logger.info(f"Server responded with OK. Upload port: {self.upload_port}")
+            self.sock.close()
+            self.client_upload(args, self.upload_port) 
 
         except Exception as e:
-             self.logger.error(f"Connection error: {e}")
+            self.logger.error(f"Connection error: {e}")
 
 
     def client_upload(self, args, upload_port):
-         try:
+        try:
 
-             self.logger.setLevel(c.calc_log_level(args.verbose, args.quiet))
+            self.logger.setLevel(c.calc_log_level(args.verbose, args.quiet))
 
-             srv_name, srv_port = self.ip, self.port 
-             c.validate_addr(srv_name, srv_port) 
-             c.validate_file(args.src)
+            srv_name, srv_port = self.ip, self.port 
+            c.validate_addr(srv_name, srv_port) 
+            c.validate_file(args.src)
 
-             self.logger.info(f"Uploading {args.src} to {srv_name}:{upload_port} as {args.name}") 
+            self.logger.info(f"Uploading {args.src} to {srv_name}:{upload_port} as {args.name}") 
 
-             if args.protocol == "saw":
-                 rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE,1) 
-             else:
-                 rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE)
+            if args.protocol == "saw":
+                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE,1) 
+            else:
+                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE)
 
-             with open(args.src, 'rb') as file:
-                 file.seek(0, 2)
-                 length = file.tell()
-                 file.seek(0)
-                 first_data = file.read(1000)
-                 rdt.send(file_protocol.encode_first_msg(length, first_data))
-                 while True:
-                     data = file.read(1000)
-                     if not data:
-                         break
-                     rdt.send(data)
+            with open(args.src, 'rb') as file:
+                file.seek(0, 2)
+                length = file.tell()
+                file.seek(0)
+                first_data = file.read(1000)
+                rdt.send(file_protocol.encode_first_msg(length, first_data))
+                while True:
+                    data = file.read(1000)
+                    if not data:
+                        break
+                    rdt.send(data)
                 
-                 self.logger.info("Upload client run successful!")
+                self.logger.info("Upload client run successful!")
+            while (rdt.all_sent):
+                pass
 
 
-         except Exception as e:
-             self.logger.error(f"Client error: {e}")
+        except Exception as e:
+            self.logger.error(f"Client error: {e}")
 
     def client_download(self,args):
         try:

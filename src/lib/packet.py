@@ -3,8 +3,6 @@ from struct import pack, unpack
 
 class Packet:
     def __init__(self, seq, ack, data=None):
-        if isinstance(data, str):
-            data = data.encode('utf-8')
         self.seq = seq
         self.ack = ack
         self.data = data if data is not None else bytes()

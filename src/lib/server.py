@@ -122,7 +122,7 @@ class Server:
         try:
             with open(f"{self.storage}/{file_name}", "rb") as f:
                 while True:
-                    data = f.read(1016)
+                    data = f.read(1496)
                     if not data:
                         break
                     peer.send(data)

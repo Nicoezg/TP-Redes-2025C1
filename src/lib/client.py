@@ -27,12 +27,14 @@ class Client:
                 self.logger.info(f"Downloading {args.name} from {args.host}:{args.port}")
                 request = file_protocol.encode_request(file_protocol.DOWNLOAD, self.name, 0 if self.protocol== "saw" else 1)
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+            if op == 1:
+                self.sock.bind(('', 0))
             
 
             self.sock.sendto(request, (self.ip, self.port))
 
-            response, _ = self.sock.recvfrom(1024)
-            print(response)
+            response, _ = self.sock.recvfrom(1496)
             error_code, upload_port, file_size = file_protocol.decode_response(response)
             if error_code != 0:
                 # Bla bla bla
@@ -42,7 +44,6 @@ class Client:
 
 
             self.logger.info(f"Server responded with OK. Upload port: {self.upload_port}")
-            self.sock.close()
             if op == file_protocol.UPLOAD:
                 self.client_upload(args, self.upload_port)
             elif op == file_protocol.DOWNLOAD:
@@ -71,7 +72,7 @@ class Client:
                 file.seek(0, 2)
                 file.seek(0)
                 while True:
-                    data = file.read(1000)
+                    data = file.read(1496)
                     if not data:
                         break
                     rdt.send(data)
@@ -96,18 +97,20 @@ class Client:
             self.logger.info(f"Downloading {args.name} from {srv_name}:{srv_port}")
 
             if args.protocol == "saw":  # si el cliente elige el protocolo stop and wait
-                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, 1)
+                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, 1, sock=self.sock)
             else:  # si el cliente elige el protocolo go back n
-                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE)
+                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, sock=self.sock)
             
 
             size_act = 0
-            with open(args.name, 'wb') as file:
+            with open(args.dst, 'wb') as file:
                 while True:
-                    data = rdt.recv()
-                    if not data or size<=size_act:
+                    if size<=size_act:
                         break
-                    file.write(data)                
+                    data = rdt.recv()
+                    if not data:
+                        break
+                    file.write(data)             
                     size_act += len(data)
 
             self.logger.info("Download client run successful!")

@@ -21,5 +21,4 @@ class Packet:
         return cls(seq, ack, data)
 
     def to_bytes(self):
-        print(f"[DEBUG] Packet.to_bytes(): data type is {type(self.data)}")
         return pack("!1H1H{}s".format(len(self.data)), self.seq, self.ack, self.data)

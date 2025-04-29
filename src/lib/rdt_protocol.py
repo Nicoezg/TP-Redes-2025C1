@@ -7,21 +7,21 @@ from lib.packet import Packet
 
 READ_MODE = 0
 WRITE_MODE = 1
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 1500
 MAX_TIMEOUTS = 5
 
 
 class GBNPeer:
-    def __init__(self, addr, mode, win_size=10, timeout=2.0):
+    def __init__(self, addr, mode, win_size=10, timeout=2.0, sock=None):
         self.addr = addr
         self.mode = mode
         self.win_size = win_size
         self.timeout = timeout
 
-        self.sock = s.socket(s.AF_INET, s.SOCK_DGRAM)
-        if self.mode == READ_MODE:
+        # Use the provided socket or create a new one
+        self.sock = sock if sock else s.socket(s.AF_INET, s.SOCK_DGRAM)
+        if self.mode == READ_MODE and not sock:
             self.sock.bind(self.addr)
-        
 
         # Set timeout for ACKs
         if self.mode == WRITE_MODE:

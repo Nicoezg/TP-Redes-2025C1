@@ -8,7 +8,7 @@ from lib import rdt_protocol
 
 UPLOAD = 0
 DOWNLOAD = 1
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 1500
 
 class Server:
     def __init__(self, ip, port, storage, logger: Logger, protocol):
@@ -86,9 +86,9 @@ class Server:
 
                 self.logger.info(f"Client {addr} requested download of {file_name}")
                 if proto == 0:
-                    peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.WRITE_MODE, 0)
+                    peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE, 0)
                 else:
-                    peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.WRITE_MODE)
+                    peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE)
                 _, download_port = peer.sock.getsockname()
                 self.logger.info(f"Assigned port {download_port} for download to {addr}")
                 self.threads[addr] = threading.Thread(target=self.handle_download, args=(peer, file_name, addr))
@@ -107,7 +107,6 @@ class Server:
             while True:
                 try:
                     data = peer.recv(timeout=5)
-                    print(f"Received data: {data} from {client_addr}") 
                     if not data:
                         break
                     f.write(data)
@@ -123,7 +122,7 @@ class Server:
         try:
             with open(f"{self.storage}/{file_name}", "rb") as f:
                 while True:
-                    data = f.read(1000)
+                    data = f.read(1016)
                     if not data:
                         break
                     peer.send(data)

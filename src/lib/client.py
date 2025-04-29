@@ -17,14 +17,18 @@ class Client:
 
     def initial_connection(self, args, op):
         try:
-            self.logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
+            if op== 0:
+                self.logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
+                c.validate_file(args.src)
+                file_size = os.path.getsize(args.src)
+                request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1, file_size if op == file_protocol.UPLOAD else 0)
+            
+            elif op == 1:
+                self.logger.info(f"Downloading {args.name} from {args.host}:{args.port}")
+                request = file_protocol.encode_request(file_protocol.DOWNLOAD, self.name, 0 if self.protocol== "saw" else 1)
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            
 
-            c.validate_file(args.src)
-            file_size = os.path.getsize(args.src)
-
-            request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, 0 if self.protocol== "saw" else 1, file_size if op == file_protocol.UPLOAD else 0)
-            # Si se quiere descargar un archivo, op = 1.
             self.sock.sendto(request, (self.ip, self.port))
 
             response, _ = self.sock.recvfrom(1024)
@@ -34,11 +38,15 @@ class Client:
                 # Bla bla bla
                 raise Exception("Server did not accept upload")
             self.upload_port = upload_port
+            local_address = self.sock.getsockname()
 
 
             self.logger.info(f"Server responded with OK. Upload port: {self.upload_port}")
             self.sock.close()
-            self.client_upload(args, self.upload_port) 
+            if op == file_protocol.UPLOAD:
+                self.client_upload(args, self.upload_port)
+            elif op == file_protocol.DOWNLOAD:
+                self.client_download(args,local_address,file_size)
 
         except Exception as e:
             self.logger.error(f"Connection error: {e}")
@@ -76,7 +84,7 @@ class Client:
         except Exception as e:
             self.logger.error(f"Client error: {e}")
 
-    def client_download(self,args):
+    def client_download(self,args,local_address,size):
         try:
             self.logger.setLevel(c.calc_log_level(args.verbose, args.quiet))
 
@@ -84,21 +92,19 @@ class Client:
             c.validate_addr(srv_name, srv_port)
 
             self.logger.info("Starting download client...")
+            self.logger.info(f"Client listening on {local_address[0]}:{local_address[1]}")
             self.logger.info(f"Downloading {args.name} from {srv_name}:{srv_port}")
 
             if args.protocol == "saw":  # si el cliente elige el protocolo stop and wait
-                rdt_protocol = rdt_protocol.GBNPeer((srv_name, srv_port), rdt_protocol.READ_MODE, 1)
+                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, 1)
             else:  # si el cliente elige el protocolo go back n
-                rdt_protocol = rdt_protocol.GBNPeer((srv_name, srv_port), rdt_protocol.READ_MODE)
+                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE)
             
-            rdt_protocol.send(file_protocol.encode_request(file_protocol.DOWNLOAD, args.name, 0 if args.protocol == "saw" else 1))
 
-            size=rdt_protocol.recv()
-            size = file_protocol.decode_first_msg(size)
             size_act = 0
             with open(args.name, 'wb') as file:
                 while True:
-                    data = rdt_protocol.recv()
+                    data = rdt.recv()
                     if not data or size<=size_act:
                         break
                     file.write(data)                

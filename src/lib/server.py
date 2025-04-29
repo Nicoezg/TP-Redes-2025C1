@@ -79,8 +79,25 @@ class Server:
         
         elif op == DOWNLOAD:
             # Fijarse que exista el path y demas (si hay error settear error_code a un valor != 0)
-            file_size = os.path.getsize(f"{self.storage}/{file_name}")
-            response = file_protocol.encode_response(error_code, 0, file_size)
+            try:
+                file_size = os.path.getsize(self.storage+"/"+file_name)
+                response = file_protocol.encode_response(error_code, 0, file_size)
+                self.sock.sendto(response, addr)
+
+                self.logger.info(f"Client {addr} requested download of {file_name}")
+                if proto == 0:
+                    peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.WRITE_MODE, 0)
+                else:
+                    peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.WRITE_MODE)
+                _, download_port = peer.sock.getsockname()
+                self.logger.info(f"Assigned port {download_port} for download to {addr}")
+                self.threads[addr] = threading.Thread(target=self.handle_download, args=(peer, file_name, addr))
+                self.clients[addr] = peer
+            except FileNotFoundError:
+                self.logger.error(f"File {file_name} not found")
+                error_code = 1
+                response = file_protocol.encode_response(error_code,0,0)
+                self.sock.sendto(response, addr)
             
 
     def handle_upload(self, peer, file_name, client_addr, file_size):
@@ -101,8 +118,18 @@ class Server:
                 except Exception as e:
                     self.logger.warning(f"Error receiving file: {e}")
                     break
-        peer.stop()
 
+    def handle_download(self, peer, file_name, client_addr):
+        try:
+            with open(f"{self.storage}/{file_name}", "rb") as f:
+                while True:
+                    data = f.read(1000)
+                    if not data:
+                        break
+                    peer.send(data)
+                    self.logger.info(f"Sent data: {data} to {client_addr}")
+        except Exception as e:
+            self.logger.error(f"Error sending file: {e}")
     def stop_server(self):
         for client in self.clients.values():
             client.stop()

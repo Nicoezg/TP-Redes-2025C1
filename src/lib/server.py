@@ -105,7 +105,7 @@ class Server:
 
     def stop_server(self):
         for client in self.clients.values():
-            client.close()
+            client.stop()
         for thread in self.threads.values():
             thread.join()
         self.sock.close()

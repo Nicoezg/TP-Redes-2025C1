@@ -61,7 +61,7 @@ class Server:
             self.logger.info(f"Client {addr} requested upload of {file_name}")
 
             if proto == 0:
-                peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.READ_MODE, 0)  
+                peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.READ_MODE, win_size=1)
             else:
                 peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.READ_MODE)
 
@@ -76,7 +76,6 @@ class Server:
             thread = threading.Thread(target=self.handle_upload, args=(peer, file_name, addr, file_size))
             self.threads[addr] = thread
             self.clients[addr] = peer
-        
         elif op == DOWNLOAD:
             # Fijarse que exista el path y demas (si hay error settear error_code a un valor != 0)
             try:
@@ -86,7 +85,7 @@ class Server:
 
                 self.logger.info(f"Client {addr} requested download of {file_name}")
                 if proto == 0:
-                    peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE, 0)
+                    peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE, win_size=1)
                 else:
                     peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE)
                 _, download_port = peer.sock.getsockname()
@@ -129,6 +128,7 @@ class Server:
                     self.logger.info(f"Sent data: {data} to {client_addr}")
         except Exception as e:
             self.logger.error(f"Error sending file: {e}")
+
     def stop_server(self):
         for client in self.clients.values():
             client.stop()

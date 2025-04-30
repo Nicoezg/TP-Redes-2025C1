@@ -9,12 +9,16 @@ READ_MODE = 0
 WRITE_MODE = 1
 CHUNK_SIZE = 1500
 MAX_TIMEOUTS = 5
+BASE_WIN_SIZE = 10
+BASE_TIMEOUT = 2.0
 
 
 class GBNPeer:
-    def __init__(self, addr, mode, win_size=10, timeout=2.0, sock=None):
+    def __init__(self, addr, mode, win_size=BASE_WIN_SIZE, timeout=BASE_TIMEOUT, sock=None):
         self.addr = addr
         self.mode = mode
+        if win_size <= 0:
+            raise ValueError("Invalid window size. Must be higher than 0.")
         self.win_size = win_size
         self.timeout = timeout
 
@@ -82,9 +86,12 @@ class GBNPeer:
                 self._fill_window()
 
                 # Wait if nothing to do
-                if self.queue.empty() and self.base == self.next_seq:
+                while self.queue.empty() and self.base == self.next_seq:
                     self.cond.wait()
-        
+
+                    # Check if woken by a call to self.stop
+                    if not self.running:
+                        return
 
             try:
                 ack_data, _ = self.sock.recvfrom(CHUNK_SIZE)
@@ -100,8 +107,8 @@ class GBNPeer:
             except s.timeout:
                 self.timeout_count += 1
                 if self.timeout_count >= MAX_TIMEOUTS:
-                    # TODO: Something more graceful. Could have problems with self.stop()
                     self.running = False
+                    self.sock.close()
                     return
 
                 # Retransmit window
@@ -144,10 +151,11 @@ class GBNPeer:
         return self.queue.empty() and not self.send_buffer
 
     def stop(self):
-        self.running = False
-        self.sock.close()
-        with self.cond:
-            self.cond.notify_all()
+        if self.running:
+            self.running = False
+            self.sock.close()
+            with self.cond:
+                self.cond.notify_all()
     
     def is_write_mode(self):
         return self.mode == WRITE_MODE

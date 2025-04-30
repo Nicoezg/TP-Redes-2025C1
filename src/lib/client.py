@@ -64,7 +64,7 @@ class Client:
             self.logger.info(f"Uploading {args.src} to {srv_name}:{upload_port} as {args.name}") 
 
             if args.protocol == "saw":
-                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE,1) 
+                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE, win_size=1)
             else:
                 rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE)
 
@@ -97,7 +97,7 @@ class Client:
             self.logger.info(f"Downloading {args.name} from {srv_name}:{srv_port}")
 
             if args.protocol == "saw":  # si el cliente elige el protocolo stop and wait
-                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, 1, sock=self.sock)
+                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, win_size=1, sock=self.sock)
             else:  # si el cliente elige el protocolo go back n
                 rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, sock=self.sock)
             

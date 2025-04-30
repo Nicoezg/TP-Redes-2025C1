@@ -1,11 +1,8 @@
 import argparse
-import logging
+from lib.common import configure_log_level 
 from lib import client
 
 def main():
-    logging.basicConfig(format='[%(levelname)s] %(message)s')
-    logger = logging.getLogger(__name__)
-
     parser = argparse.ArgumentParser(
             prog='TPClientUp',
             description='Upload client for the file transfer app')
@@ -19,15 +16,10 @@ def main():
     parser.add_argument('-r', '--protocol', help="error recovery protocol")
 
     args = parser.parse_args()
-    if args.verbose:
-        logger.setLevel(logging.INFO)
-    elif args.quiet:
-        logger.setLevel(logging.CRITICAL)
-    else:
-        logger.setLevel(logging.ERROR)
 
+    configure_log_level(args)
 
-    client.Client(args.host, args.name, args.port, args.protocol,logger).initial_connection(args, 0)
+    client.Client(args.host, args.name, args.port, args.protocol).initial_connection(args, 0)
 
 if __name__ == '__main__':
     main()

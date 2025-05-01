@@ -2,6 +2,7 @@ import argparse
 from lib.common import configure_log_level
 from lib import client
 
+
 def main():
     parser = argparse.ArgumentParser(
             prog='TPClientUp',
@@ -20,7 +21,7 @@ def main():
     configure_log_level(args)
 
     client.Client(args.host, args.name, args.port, args.protocol).initial_connection(args, 1)
-    
+
 
 if __name__ == '__main__':
     main()

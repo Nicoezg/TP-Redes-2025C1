@@ -6,9 +6,10 @@ from lib import common as c
 from lib import file_protocol
 from lib import rdt_protocol
 
-UPLOAD = 0
-DOWNLOAD = 1
-BUFFER_SIZE = 1500
+BUFFER_SIZE = 1400
+DATA_SIZE = 1396
+SIX_MB = 6291456
+
 
 class Server:
     def __init__(self, ip, port, storage, protocol):
@@ -22,31 +23,33 @@ class Server:
 
     def run_server(self):
         try:
-            c.validate_addr(self.ip, self.port)
+            c.validate_addr(self.port)
             c.validate_storage(self.storage)
 
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.bind((self.ip, self.port))
-      
+
             logger.info(f"Server listening on {self.ip} : {self.port}")
             logger.info("Server run successful!")
 
-            self.listen_client(self.port)
+            self.listen_client()
 
         except Exception as e:
             logger.error(f"Server error: {e}")
 
-    def listen_client(self, addr):
+    def listen_client(self):
         while True:
             try:
                 data, client_addr = self.sock.recvfrom(BUFFER_SIZE)
                 if not data:
                     break
                 logger.info(f"Received data from {client_addr}: {data}")
+
                 if client_addr not in self.clients:
                     logger.info(f"New client connected: {client_addr}")
                     self.new_client(data, client_addr)
-                    self.threads[client_addr].start()
+                    if client_addr in self.threads:
+                        self.threads[client_addr].start()
 
             except Exception as e:
                 logger.error(f"Error receiving data: {e}")
@@ -56,7 +59,7 @@ class Server:
         op, file_name, proto, file_size = file_protocol.decode_request(data)
         error_code = 0
 
-        if op == UPLOAD:
+        if op == file_protocol.UPLOAD:
             logger.info(f"Client {addr} requested upload of {file_name}")
 
             if proto == 0:
@@ -68,39 +71,46 @@ class Server:
 
             logger.info(f"Assigned port {upload_port} for upload from {addr}")
 
-            # Acá chequear por errores (si hay error settear error_code a un valor != 0)
+            if file_size > SIX_MB:
+                logger.error(f"File size exceeds limit: {file_size} bytes")
+                error_code = 2
+
             response = file_protocol.encode_response(error_code, upload_port)
             self.sock.sendto(response, addr)
+
+            if error_code != 0:
+                peer.stop()
+                return
 
             thread = threading.Thread(target=self.handle_upload, args=(peer, file_name, addr, file_size))
             self.threads[addr] = thread
             self.clients[addr] = peer
-        elif op == DOWNLOAD:
-            # Fijarse que exista el path y demas (si hay error settear error_code a un valor != 0)
+
+        elif op == file_protocol.DOWNLOAD:
             try:
                 file_size = os.path.getsize(self.storage+"/"+file_name)
                 response = file_protocol.encode_response(error_code, 0, file_size)
                 self.sock.sendto(response, addr)
-
                 logger.info(f"Client {addr} requested download of {file_name}")
+
                 if proto == 0:
                     peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE, win_size=1)
                 else:
                     peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE)
                 _, download_port = peer.sock.getsockname()
+
                 logger.info(f"Assigned port {download_port} for download to {addr}")
-                self.threads[addr] = threading.Thread(target=self.handle_download, args=(peer, file_name, addr))
+                self.threads[addr] = threading.Thread(target=self.handle_download, args=(peer, file_name))
                 self.clients[addr] = peer
+
             except FileNotFoundError:
                 logger.error(f"File {file_name} not found")
                 error_code = 1
-                response = file_protocol.encode_response(error_code,0,0)
+                response = file_protocol.encode_response(error_code, 0, 0)
                 self.sock.sendto(response, addr)
-            
 
     def handle_upload(self, peer, file_name, client_addr, file_size):
         received_size = 0
-
         with open(f"{self.storage}/{file_name}", "wb") as f:
             while True:
                 try:
@@ -111,19 +121,19 @@ class Server:
                     received_size += len(data)
                     if received_size >= file_size:
                         break
-            
+
                 except Exception as e:
                     logger.warning(f"Error receiving file: {e}")
                     break
-            
+
             if received_size >= file_size:
                 logger.info(f"New file uploaded: {file_name} from {client_addr}")
 
-    def handle_download(self, peer, file_name, client_addr):
+    def handle_download(self, peer, file_name):
         try:
             with open(f"{self.storage}/{file_name}", "rb") as f:
                 while True:
-                    data = f.read(1496)
+                    data = f.read(DATA_SIZE)
                     if not data:
                         break
                     peer.send(data)

@@ -8,7 +8,7 @@ from lib.packet import Packet
 
 READ_MODE = 0
 WRITE_MODE = 1
-CHUNK_SIZE = 1500
+CHUNK_SIZE = 1400
 MAX_TIMEOUTS = 5
 BASE_WIN_SIZE = 10
 BASE_TIMEOUT = 2.0
@@ -75,7 +75,6 @@ class GBNPeer:
                 data = self.queue.get_nowait()
             except Empty:
                 break
-            
 
             self.send_buffer[self.next_seq] = data
             packet = Packet(self.next_seq, 0, data)
@@ -164,6 +163,6 @@ class GBNPeer:
             self.sock.close()
             with self.cond:
                 self.cond.notify_all()
-    
+
     def is_write_mode(self):
         return self.mode == WRITE_MODE

@@ -37,9 +37,11 @@ Upload and download examples:
 |                                   | <---- data, etc                   |
 +-----------------------------------+-----------------------------------+
 """
+
+
 def decode_request(data):
     """
-    Decodes a request and returns file name, 
+    Decodes a request and returns file name,
     error-recovery protocol and file size.
     """
     op = data[0]
@@ -53,6 +55,7 @@ def decode_request(data):
     file_size = _decode_file_size(data[file_name_end + 1:])
 
     return op, file_name, protocol, file_size
+
 
 def encode_request(op, file_name, protocol, file_size=0):
     """
@@ -73,6 +76,7 @@ def encode_response(error_code, port=0, file_size=0):
     """
     return bytes([error_code]) + _encode_port(port) + _encode_file_size(file_size)
 
+
 def decode_response(data):
     """
     Decodes a response and returns the error code, port and file size.
@@ -83,11 +87,13 @@ def decode_response(data):
 
     return error_code, port, file_size
 
+
 def _encode_file_size(file_size):
     """
     Encodes the file size into 3 bytes.
     """
     return file_size.to_bytes(3, byteorder='big')
+
 
 def _decode_file_size(data):
     """
@@ -95,11 +101,13 @@ def _decode_file_size(data):
     """
     return int.from_bytes(data, byteorder='big')
 
+
 def _encode_port(port):
     """
     Encodes the port number into 2 bytes.
     """
     return port.to_bytes(2, byteorder='big')
+
 
 def _decode_port(data):
     """

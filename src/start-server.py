@@ -1,6 +1,7 @@
 import argparse
-from lib.common import configure_log_level 
+from lib.common import configure_log_level
 from lib.server import Server
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -24,6 +25,7 @@ def main():
     except KeyboardInterrupt:
         print("Shutting down...")
         server.stop_server()
+
 
 if __name__ == '__main__':
     main()

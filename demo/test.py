@@ -1,8 +1,6 @@
 from mininet.net import Mininet
 from mininet.log import setLogLevel
 from mininet.term import makeTerm
-from time import sleep
-
 
 def run():
     

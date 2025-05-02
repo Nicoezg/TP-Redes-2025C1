@@ -20,9 +20,9 @@ def run():
     while True:
         operacion = input('What do you want to do? (upload/download): ')
         if operacion == 'upload':
-            makeTerm(h1, title="client", cmd= 'python3 ../src/upload.py -H 192.168.0.2 -p 8081 -s media/4mb.pdf -n 4mb.pdf -r gbn -v; exec bash')
+            makeTerm(h1, title="client", cmd= 'python3 ../src/upload.py -H 192.168.0.2 -p 8081 -s media/5mb.jpeg -n 5mb.jpeg -r gbn -v; exec bash')
         elif operacion == 'download':
-            makeTerm(h1, title="client", cmd= 'python3 ../src/download.py -H 192.168.0.2 -p 8081 -d ../demo/media/4mb.pdf -n 4mb.pdf -r gbn -v; exec bash')
+            makeTerm(h1, title="client", cmd= 'python3 ../src/download.py -H 192.168.0.2 -p 8081 -d ../demo/media/5mb.jpeg -n 5mb.jpeg -r gbn -v; exec bash')
         
         done = input("¿Terminaste? (y/n): ").strip().lower()
         if done == 'y':

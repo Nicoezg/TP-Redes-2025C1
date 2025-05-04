@@ -12,7 +12,7 @@ The request format is as follows:
 
 
 The response message format is as follows:
-    - 1 byte for error code (0 for OK, 1 for ERROR)
+    - 1 byte for error code (0 for OK, != 0 for ERROR)
     - 2 bytes for port number (big-endian) (only for upload)
     - 3 bytes for file size (big-endian) (only for download)
 
@@ -65,7 +65,12 @@ def encode_request(op, file_name, protocol, file_size=0):
     file_name = file_name.encode('utf-8')
     file_name_size = len(file_name)
 
-    data = bytes([op, file_name_size]) + bytes(file_name) + bytes([protocol]) + _encode_file_size(file_size)
+    data = (
+        bytes([op, file_name_size]) +
+        bytes(file_name) +
+        bytes([protocol]) +
+        _encode_file_size(file_size)
+    )
     return data
 
 
@@ -74,7 +79,11 @@ def encode_response(error_code, port=0, file_size=0):
     Encodes a response into bytes with the error code, port number (if upload)
     and file size (if download).
     """
-    return bytes([error_code]) + _encode_port(port) + _encode_file_size(file_size)
+    return (
+        bytes([error_code]) +
+        _encode_port(port) +
+        _encode_file_size(file_size)
+    )
 
 
 def decode_response(data):

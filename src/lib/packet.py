@@ -21,4 +21,5 @@ class Packet:
         return cls(seq, ack, data)
 
     def to_bytes(self):
-        return pack("!1H1H{}s".format(len(self.data)), self.seq, self.ack, self.data)
+        fmt = "!1H1H{}s".format(len(self.data))
+        return pack(fmt, self.seq, self.ack, self.data)

@@ -22,14 +22,34 @@ class Client:
     def initial_connection(self, args, op):
         try:
             if op == file_protocol.UPLOAD:
-                logger.info(f"Uploading {args.src} to {args.host}:{args.port} as {args.name}")
-                c.validate_file(args.src)
+                logger.info(
+                    (
+                        f"Uploading {args.src} to {args.host}:{args.port} "
+                        f"as {args.name}"
+                    )
+                )
+                c.validate_file(
+                    args.src
+                )
                 file_size = os.path.getsize(args.src)
-                request = file_protocol.encode_request(file_protocol.UPLOAD, self.name, SAW if self.protocol == "saw" else GBN, file_size if op == file_protocol.UPLOAD else 0)
+                request = file_protocol.encode_request(
+                    file_protocol.UPLOAD,
+                    self.name,
+                    SAW if self.protocol == "saw" else GBN,
+                    file_size if op == file_protocol.UPLOAD else 0
+                )
 
             elif op == file_protocol.DOWNLOAD:
-                logger.info(f"Downloading {args.name} from {args.host}:{args.port}")
-                request = file_protocol.encode_request(file_protocol.DOWNLOAD, self.name, SAW if self.protocol == "saw" else GBN)
+                logger.info(
+                    (
+                        f"Downloading {args.name} from {args.host}:{args.port}"
+                    )
+                )
+                request = file_protocol.encode_request(
+                    file_protocol.DOWNLOAD,
+                    self.name,
+                    SAW if self.protocol == "saw" else GBN
+                )
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
             if op == file_protocol.UPLOAD:
@@ -38,7 +58,9 @@ class Client:
             self.sock.sendto(request, (self.ip, self.port))
 
             response, _ = self.sock.recvfrom(DATA_SIZE)
-            error_code, port, file_size = file_protocol.decode_response(response)
+            error_code, port, file_size = file_protocol.decode_response(
+                response
+            )
             if error_code == 1:
                 raise Exception("Server error: File not found")
 
@@ -62,12 +84,24 @@ class Client:
             srv_name, srv_port = self.ip, self.port
             c.validate_addr(srv_port)
 
-            logger.info(f"Uploading {args.src} to {srv_name}:{upload_port} as {args.name}") 
+            logger.info(
+                (
+                    f"Uploading {args.src} to {srv_name}:{upload_port} "
+                    f"as {args.name}"
+                )
+            )
 
             if args.protocol == "saw":
-                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE, win_size=1)
+                rdt = rdt_protocol.GBNPeer(
+                    (srv_name, upload_port),
+                    rdt_protocol.WRITE_MODE,
+                    win_size=1
+                )
             else:
-                rdt = rdt_protocol.GBNPeer((srv_name, upload_port), rdt_protocol.WRITE_MODE)
+                rdt = rdt_protocol.GBNPeer(
+                    (srv_name, upload_port),
+                    rdt_protocol.WRITE_MODE
+                )
 
             with open(args.src, 'rb') as file:
                 while True:
@@ -90,13 +124,22 @@ class Client:
             c.validate_addr(srv_port)
 
             logger.info("Starting download client...")
-            logger.info(f"Client listening on {local_address[0]}:{local_address[1]}")
+            logger.info(
+                f"Client listening on {local_address[0]}:{local_address[1]}"
+            )
             logger.info(f"Downloading {args.name} from {srv_name}:{srv_port}")
 
-            if args.protocol == "saw":  # si el cliente elige el protocolo stop and wait
-                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, win_size=1, sock=self.sock)
-            else:  # si el cliente elige el protocolo go back n
-                rdt = rdt_protocol.GBNPeer(local_address, rdt_protocol.READ_MODE, sock=self.sock)
+            if args.protocol == "saw":
+                rdt = rdt_protocol.GBNPeer(
+                    local_address,
+                    rdt_protocol.READ_MODE,
+                    win_size=1,
+                    sock=self.sock
+                )
+            else:
+                rdt = rdt_protocol.GBNPeer(
+                    local_address, rdt_protocol.READ_MODE, sock=self.sock
+                )
 
             size_act = 0
             with open(args.dst, 'wb') as file:

@@ -14,7 +14,9 @@ class Router(Node):
 
         self.cmd("sysctl -w net.ipv4.ip_forward=1")
         self.cmd(f"ifconfig {self.name}-eth0 {DEFAULT_GATEWAY_SERVER_SIDE}/24")
-        self.cmd(f"ifconfig {self.name}-eth1 {DEFAULT_GATEWAY_CLIENTS_SIDE}/24")
+        self.cmd(
+            f"ifconfig {self.name}-eth1 {DEFAULT_GATEWAY_CLIENTS_SIDE}/24"
+        )
 
         if params.get("mtu", DO_NOT_MODIFY_MTU) != DO_NOT_MODIFY_MTU:
             self.cmd(f"ifconfig {self.name}-eth0 mtu {params.get('mtu')}")
@@ -24,7 +26,10 @@ class Router(Node):
         self.cmd("iptables -A OUTPUT -p icmp -j ACCEPT")
         self.cmd("iptables -A FORWARD -p icmp -j ACCEPT")
         self.cmd(
-            "iptables -I OUTPUT -p icmp --icmp-type fragmentation-needed -j ACCEPT"
+            (
+                "iptables -I OUTPUT -p icmp "
+                "--icmp-type fragmentation-needed -j ACCEPT"
+            )
         )
 
     def terminate(self):
@@ -81,7 +86,8 @@ class LinearEndsTopo(Topo):
             host_client_i = self.addHost(
                 f"h{i + 1}",
                 ip=f"10.0.1.{i}/24",
-                defaultRoute=f"via {DEFAULT_GATEWAY_CLIENTS_SIDE}",  # router's eth1 interface
+                # router's eth1 interface
+                defaultRoute=f"via {DEFAULT_GATEWAY_CLIENTS_SIDE}",
                 cls=Host,
             )
             self.addLink(host_client_i, s3)

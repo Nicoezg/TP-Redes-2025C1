@@ -63,9 +63,13 @@ class Server:
             logger.info(f"Client {addr} requested upload of {file_name}")
 
             if proto == 0:
-                peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.READ_MODE, win_size=1)
+                peer = rdt_protocol.GBNPeer(
+                    (self.ip, 0), rdt_protocol.READ_MODE, win_size=1
+                )
             else:
-                peer = rdt_protocol.GBNPeer((self.ip, 0), rdt_protocol.READ_MODE)
+                peer = rdt_protocol.GBNPeer(
+                    (self.ip, 0), rdt_protocol.READ_MODE
+                )
 
             _, upload_port = peer.sock.getsockname()
 
@@ -82,25 +86,36 @@ class Server:
                 peer.stop()
                 return
 
-            thread = threading.Thread(target=self.handle_upload, args=(peer, file_name, addr, file_size))
+            thread = threading.Thread(
+                target=self.handle_upload,
+                args=(peer, file_name, addr, file_size)
+            )
             self.threads[addr] = thread
             self.clients[addr] = peer
 
         elif op == file_protocol.DOWNLOAD:
             try:
                 file_size = os.path.getsize(self.storage+"/"+file_name)
-                response = file_protocol.encode_response(error_code, 0, file_size)
+                response = file_protocol.encode_response(
+                    error_code, 0, file_size
+                )
                 self.sock.sendto(response, addr)
                 logger.info(f"Client {addr} requested download of {file_name}")
 
                 if proto == 0:
-                    peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE, win_size=1)
+                    peer = rdt_protocol.GBNPeer(
+                        addr, rdt_protocol.WRITE_MODE, win_size=1
+                    )
                 else:
                     peer = rdt_protocol.GBNPeer(addr, rdt_protocol.WRITE_MODE)
                 _, download_port = peer.sock.getsockname()
 
-                logger.info(f"Assigned port {download_port} for download to {addr}")
-                self.threads[addr] = threading.Thread(target=self.handle_download, args=(peer, file_name))
+                logger.info(
+                    f"Assigned port {download_port} for download to {addr}"
+                )
+                self.threads[addr] = threading.Thread(
+                    target=self.handle_download, args=(peer, file_name)
+                )
                 self.clients[addr] = peer
 
             except FileNotFoundError:
@@ -127,7 +142,9 @@ class Server:
                     break
 
             if received_size >= file_size:
-                logger.info(f"New file uploaded: {file_name} from {client_addr}")
+                logger.info(
+                    f"New file uploaded: {file_name} from {client_addr}"
+                )
 
     def handle_download(self, peer, file_name):
         try:

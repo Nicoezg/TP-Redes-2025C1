@@ -15,7 +15,8 @@ BASE_TIMEOUT = 2.0
 
 
 class GBNPeer:
-    def __init__(self, addr, mode, win_size=BASE_WIN_SIZE, timeout=BASE_TIMEOUT, sock=None):
+    def __init__(self, addr, mode, win_size=BASE_WIN_SIZE,
+                 timeout=BASE_TIMEOUT, sock=None):
         self.addr = addr
         self.mode = mode
         if win_size <= 0:
@@ -66,7 +67,10 @@ class GBNPeer:
         return self.queue.get(block=block, timeout=timeout)
 
     def _send_packet(self, packet: Packet):
-        logger.debug(f"sending packet (seq:{packet.seq}, ack:{packet.ack}) to {self.addr}")
+        logger.debug(
+            f"sending packet (seq:{packet.seq}, ack:{packet.ack}) "
+            f"to {self.addr}"
+        )
         self.sock.sendto(packet.to_bytes(), self.addr)
 
     def _fill_window(self):
@@ -97,7 +101,10 @@ class GBNPeer:
             try:
                 ack_data, addr = self.sock.recvfrom(CHUNK_SIZE)
                 ack_packet = Packet.from_bytes(ack_data)
-                logger.debug(f"[sender-loop] received packet (seq:{ack_packet.seq}, ack:{ack_packet.ack}) from {addr}")
+                logger.debug(
+                    f"[sender-loop] received packet (seq:{ack_packet.seq}, "
+                    f"ack:{ack_packet.ack}) from {addr}"
+                )
 
                 self.timeout_count = 0
                 ack = ack_packet.ack
@@ -109,13 +116,19 @@ class GBNPeer:
             except s.timeout:
                 self.timeout_count += 1
                 if self.timeout_count >= MAX_TIMEOUTS:
-                    logger.info(f"[sender-loop] number of timeouts exceeded: {self.timeout_count}. Closing connection...")
+                    logger.info(
+                        f"[sender-loop] number of timeouts exceeded: "
+                        f"{self.timeout_count}. Closing connection..."
+                    )
                     self.running = False
                     self.sock.close()
                     return
 
                 # Retransmit window
-                logger.info(f"[sender-loop] retransmitting packets from seq: {self.base} to seq: {self.next_seq} {self.addr}")
+                logger.info(
+                    f"[sender-loop] retransmitting packets from seq: "
+                    f"{self.base} to seq: {self.next_seq} {self.addr}"
+                )
                 for seq in range(self.base, self.next_seq):
                     packet = Packet(seq, 0, self.send_buffer[seq])
                     self._send_packet(packet)
@@ -133,7 +146,10 @@ class GBNPeer:
 
             try:
                 packet = Packet.from_bytes(data)
-                logger.debug(f"[recv-loop] received packet (seq:{packet.seq}, ack:{packet.ack}) from {addr}")
+                logger.debug(
+                    f"[recv-loop] received packet (seq:{packet.seq}, "
+                    f"ack:{packet.ack}) from {addr}"
+                )
                 seq = packet.seq
                 msg = packet.data
             except Exception:
@@ -145,13 +161,19 @@ class GBNPeer:
 
                 ack = self.next_seq - 1
                 ack_packet = Packet(0, ack)  # "empty" packet (ack)
-                logger.debug(f"[recv-loop] sending packet (seq:{ack_packet.seq}, ack:{ack_packet.ack}) to {addr}")
+                logger.debug(
+                    f"[recv-loop] sending packet (seq:{ack_packet.seq}, "
+                    f"ack:{ack_packet.ack}) to {addr}"
+                )
                 self.sock.sendto(ack_packet.to_bytes(), addr)
             else:
                 expected_seq = (self.next_seq - 1) if self.next_seq > 0 else 0
                 ack = expected_seq
                 ack_packet = Packet(0, ack)  # "empty" packet (ack)
-                logger.debug(f"[recv-loop] sending packet (seq:{ack_packet.seq}, ack:{ack_packet.ack}) to {addr}")
+                logger.debug(
+                    f"[recv-loop] sending packet (seq:{ack_packet.seq}, "
+                    f"ack:{ack_packet.ack}) to {addr}"
+                )
                 self.sock.sendto(ack_packet.to_bytes(), addr)
 
     def all_sent(self):

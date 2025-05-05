@@ -50,6 +50,7 @@ class Server:
                     self.new_client(data, client_addr)
                     if client_addr in self.threads:
                         self.threads[client_addr].start()
+                self.reap_dead()
 
             except Exception as e:
                 logger.error(f"Error receiving data: {e}")
@@ -164,3 +165,10 @@ class Server:
             thread.join()
         self.sock.close()
         logger.info("Server stopped")
+
+    def reap_dead(self):
+        for addr, thread in list(self.threads.items()):
+            if not thread.is_alive():
+                logger.info(f"Removing dead client {addr}")
+                del self.clients[addr]
+                del self.threads[addr]

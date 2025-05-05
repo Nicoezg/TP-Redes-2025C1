@@ -57,7 +57,9 @@ class Client:
 
             self.sock.sendto(request, (self.ip, self.port))
 
+            self.sock.settimeout(10)
             response, _ = self.sock.recvfrom(DATA_SIZE)
+            self.sock.settimeout(None)
             error_code, port, file_size = file_protocol.decode_response(
                 response
             )

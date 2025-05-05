@@ -8,8 +8,8 @@ from lib.packet import Packet
 
 READ_MODE = 0
 WRITE_MODE = 1
-CHUNK_SIZE = 1400
-MAX_TIMEOUTS = 5
+CHUNK_SIZE = 1500
+MAX_TIMEOUTS = 7
 BASE_WIN_SIZE = 10
 BASE_TIMEOUT = 2.0
 
@@ -36,8 +36,8 @@ class GBNPeer:
         self.queue = Queue()
         self.send_buffer = {}
 
-        self.base = 0
-        self.next_seq = 0
+        self.base = 1
+        self.next_seq = 1
         self.timeout_count = 0
 
         self.lock = threading.RLock()
@@ -109,7 +109,7 @@ class GBNPeer:
                 self.timeout_count = 0
                 ack = ack_packet.ack
                 if ack >= self.base and ack < self.next_seq:
-                    # If is valid ACK update the send buffer
+                    # If is valid ACK update the send buffer and update values
                     for seq in range(self.base, ack + 1):
                         self.send_buffer.pop(seq)
                     self.base = ack + 1
@@ -127,7 +127,7 @@ class GBNPeer:
                 # Retransmit window
                 logger.info(
                     f"[sender-loop] retransmitting packets from seq: "
-                    f"{self.base} to seq: {self.next_seq} {self.addr}"
+                    f"{self.base} to seq: {self.next_seq - 1} {self.addr}"
                 )
                 for seq in range(self.base, self.next_seq):
                     packet = Packet(seq, 0, self.send_buffer[seq])
@@ -156,20 +156,19 @@ class GBNPeer:
                 continue
 
             if seq == self.next_seq:
+                ack = self.next_seq
                 self.next_seq += 1
                 self.queue.put(msg)
 
-                ack = self.next_seq - 1
                 ack_packet = Packet(0, ack)  # "empty" packet (ack)
                 logger.debug(
                     f"[recv-loop] sending packet (seq:{ack_packet.seq}, "
                     f"ack:{ack_packet.ack}) to {addr}"
                 )
                 self.sock.sendto(ack_packet.to_bytes(), addr)
-            else:
-                expected_seq = (self.next_seq - 1) if self.next_seq > 0 else 0
-                ack = expected_seq
-                ack_packet = Packet(0, ack)  # "empty" packet (ack)
+            elif seq < self.next_seq:
+                ack = self.next_seq - 1
+                ack_packet = Packet(0, ack)
                 logger.debug(
                     f"[recv-loop] sending packet (seq:{ack_packet.seq}, "
                     f"ack:{ack_packet.ack}) to {addr}"

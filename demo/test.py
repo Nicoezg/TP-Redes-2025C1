@@ -1,6 +1,7 @@
 from mininet.net import Mininet
 from mininet.log import setLogLevel
 from mininet.term import makeTerm
+from mininet.link import TCLink
 
 
 def run():
@@ -8,7 +9,7 @@ def run():
     h1 = net.addHost('h1', ip='192.168.0.1/28')
     h2 = net.addHost('h2', ip='192.168.0.2/28')
     s1 = net.addSwitch('s1', failMode='standalone')
-    net.addLink(h1, s1, loss=10)
+    net.addLink(h1, s1, cls=TCLink, loss=10)
     net.addLink(h2, s1)
     net.start()
 
@@ -19,7 +20,7 @@ def run():
         title="server",
         cmd=(
             'python3 ../src/start-server.py '
-            '-H 192.168.0.2 -p 8081 -s ../demo/srv -v; exec bash'
+            '-H 192.168.0.2 -p 8081 -s ../demo/srv -r gbn -v; exec bash'
         )
     )
 

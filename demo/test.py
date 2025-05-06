@@ -20,7 +20,7 @@ def run():
         title="server",
         cmd=(
             'python3 ../src/start-server.py '
-            '-H 192.168.0.2 -p 8081 -s ../demo/srv -r gbn -v; exec bash'
+            '-H 192.168.0.2 -p 8081 -s ../demo/srv -r gbn; exec bash'
         )
     )
 
@@ -32,7 +32,7 @@ def run():
                 title="client",
                 cmd=(
                     'python3 ../src/upload.py -H 192.168.0.2 -p 8081 '
-                    '-s media/5mb.jpg -n 5mb.jpg -r gbn -v; exec bash'
+                    '-s media/5mb.jpg -n 5mb.jpg -r gbn; exec bash'
                 )
             )
         elif operacion == 'download':
@@ -41,7 +41,7 @@ def run():
                 title="client",
                 cmd=(
                     'python3 ../src/download.py -H 192.168.0.2 -p 8081 '
-                    '-d ../demo/clnt/5mb.jpg -n 5mb.jpg -r gbn -v; exec bash'
+                    '-d ../demo/clnt/5mb.jpg -n 5mb.jpg -r gbn; exec bash'
                 )
             )
 

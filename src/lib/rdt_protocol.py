@@ -169,8 +169,8 @@ class GBNPeer:
             elif seq < self.next_seq:
                 ack = self.next_seq - 1
                 ack_packet = Packet(0, ack)
-                logger.debug(
-                    f"[recv-loop] sending packet (seq:{ack_packet.seq}, "
+                logger.info(
+                    f"[recv-loop] repeated packet, resending ACK (seq:{ack_packet.seq}, "
                     f"ack:{ack_packet.ack}) to {addr}"
                 )
                 self.sock.sendto(ack_packet.to_bytes(), addr)

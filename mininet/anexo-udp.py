@@ -12,14 +12,17 @@ DO_NOT_MODIFY_MTU = -1
 DEFAULT_GATEWAY_CLIENTS_SIDE = "10.0.1.254"
 DEFAULT_GATEWAY_SERVER_SIDE = "10.0.0.254"
 
+
 def start_capture(interface, outfile):
     cmd = [
         'sudo', 'tshark',
         '-i', interface,
-        '-f', 'not port 22 and not port 123 and not port 6633 and not port 6653',
+        '-f',
+        'not port 22 and not port 123 and not port 6633 and not port 6653',
         '-w', outfile
     ]
     return subprocess.Popen(cmd)
+
 
 class Router(Node):
     def config(self, **params):
@@ -91,21 +94,22 @@ class LinearEndsTopo(Topo):
         # set link server-s1
         self.addLink(h1_server, s1)
 
-        h2_client = self.addHost("h2", ip="10.0.1.1/24", defaultRoute=f"via {DEFAULT_GATEWAY_CLIENTS_SIDE}", cls=Host)
+        h2_client = self.addHost(
+            "h2",
+            ip="10.0.1.1/24",
+            defaultRoute=f"via {DEFAULT_GATEWAY_CLIENTS_SIDE}",
+            cls=Host,
+        )
         self.addLink(s3, h2_client)
+
 
 def run():
     topo = LinearEndsTopo()
-    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch)
+    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch, controller=None)
     net.start()
 
     tshark_proc1 = start_capture('s1-eth2', '/tmp/1-udp.pcapng')
     tshark_proc2 = start_capture('s3-eth1', '/tmp/2-udp.pcapng')
-
-    h1, h2 = net.get('h1'), net.get('h2')
-
-    #h1.cmd('iperf -s &')
-    #h2.cmd(f'iperf -c {h1.IP()} -u -l 1400 -n 10K -t 1')
 
     CLI(net)
 
@@ -115,6 +119,7 @@ def run():
     tshark_proc2.wait(timeout=10)
 
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

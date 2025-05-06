@@ -54,7 +54,6 @@ python3 download.py [-h] [-v | -q] -H HOST -p PORT -d DST -n NAME [-r PROTOCOL]
 6. Para probar el cliente y el servidor con mininet, ejecutar el siguiente comando:
 
 ``` bash
-cd ..
 cd demo
 sudo python3 test.py
 ```

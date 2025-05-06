@@ -4,7 +4,7 @@
 
 ### Requisitos previos:
 
-- Tener instalado Python 3
+- Tener instalado Python3
 - Tener instalado mininet
 
 ### Comandos para ejecutar el proyecto:
@@ -56,7 +56,7 @@ python3 download.py [-h] [-v | -q] -H HOST -p PORT -d DST -n NAME [-r PROTOCOL]
 ``` bash
 cd ..
 cd demo
-python3 test.py
+sudo python3 test.py
 ```
 
-Aqui se le preguntara si se desea hacer un uploado o un download. Se debe escribir por la consola correspondiente que se desea elegir. Notemos que el archivo que se prueba es el que se llama 5mb.jpg, que se encuentra en la carpeta media. Para asegurarse que funcione el test. Si quiere hacer un upload, copie el archivo 5mb.jpg en la carpeta clnt y se subira a la carpeta srv. Si quiere hacer un download, copie el archivo 5mb.jpg en la carpeta srv y se bajara a la carpeta clnt.
+Aqui se le preguntará si desea hacer un upload o download. Se debe escribir por consola una de las opciones. Notemos que el archivo que se prueba es el que se llama 5mb.jpg, que se encuentra en la carpeta media. El cliente almacenará las descargas en la carpeta clnt mientras que el servidor lo hará en la carpeta srv. Es importante aclarar que para realizar una descarga, el archivo tiene que estar presente en la carpeta srv (tiene que estar previamente subido haciendo upload).

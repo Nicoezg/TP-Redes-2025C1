@@ -50,3 +50,13 @@ python3 upload.py [-h] [-v | -q] -H HOST -p PORT -s SRC -n NAME [-r PROTOCOL]
 ``` bash
 python3 download.py [-h] [-v | -q] -H HOST -p PORT -d DST -n NAME [-r PROTOCOL]
 ```
+
+6. Para probar el cliente y el servidor con mininet, ejecutar el siguiente comando:
+
+``` bash
+cd ..
+cd demo
+sudo python3 test.py
+```
+
+Aqui se le preguntará si desea hacer un upload o download. Se debe escribir por consola una de las opciones. Notemos que el archivo que se prueba es el que se llama `5mb.jpg`, que se encuentra en la carpeta `media`. El cliente almacenará las descargas en la carpeta `clnt` mientras que el servidor lo hará en la carpeta `srv`. Es importante aclarar que para realizar una descarga, el archivo tiene que estar presente en la carpeta `srv` (tiene que estar previamente subido haciendo upload).

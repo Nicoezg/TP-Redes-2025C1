@@ -45,7 +45,7 @@ python3 download.py -h
 ``` bash
 python3 upload.py [-h] [-v | -q] -H HOST -p PORT -s SRC -n NAME [-r PROTOCOL]
 ```
-o
+
 
 ``` bash
 python3 download.py [-h] [-v | -q] -H HOST -p PORT -d DST -n NAME [-r PROTOCOL]

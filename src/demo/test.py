@@ -19,7 +19,7 @@ def run():
         h2,
         title="server",
         cmd=(
-            'python3 ../src/start-server.py '
+            'python3 ../start-server.py '
             '-H 192.168.0.2 -p 8081 -s ../demo/srv -r gbn; exec bash'
         )
     )
@@ -31,7 +31,7 @@ def run():
                 h1,
                 title="client",
                 cmd=(
-                    'python3 ../src/upload.py -H 192.168.0.2 -p 8081 '
+                    'python3 ../upload.py -H 192.168.0.2 -p 8081 '
                     '-s media/5mb.jpg -n 5mb.jpg -r gbn; exec bash'
                 )
             )
@@ -40,7 +40,7 @@ def run():
                 h1,
                 title="client",
                 cmd=(
-                    'python3 ../src/download.py -H 192.168.0.2 -p 8081 '
+                    'python3 ../download.py -H 192.168.0.2 -p 8081 '
                     '-d ../demo/clnt/5mb.jpg -n 5mb.jpg -r gbn; exec bash'
                 )
             )

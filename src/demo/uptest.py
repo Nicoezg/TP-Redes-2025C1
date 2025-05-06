@@ -43,7 +43,7 @@ def run():
     h1, h2 = net.get('h1'), net.get('h2')
 
     print("*** Starting server")
-    srv_cmd = "python3 ../src/start-server.py -H 0.0.0.0 -p 8081 -s ../demo/srv -v"
+    srv_cmd = "python3 ../start-server.py -H 0.0.0.0 -p 8081 -s ../demo/srv -v"
     server = h2.popen(srv_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env)
     sleep(3)
     print("*** Server output:")
@@ -55,7 +55,7 @@ def run():
         print(server.stdout.readline().strip())
 
     print("*** Starting client")
-    client_cmd = f'python3 ../src/upload.py -H {h2.IP()} -p 8081 -s media/5mb.jpg -n 5mb.jpg -r gbn -v'
+    client_cmd = f'python3 ../upload.py -H {h2.IP()} -p 8081 -s media/5mb.jpg -n 5mb.jpg -r gbn -v'
     client_log = '/tmp/uplog.txt'
     with open(client_log, 'w') as log:
         client = h1.popen(client_cmd, stdout=log, stderr=log, universal_newlines=True, env=env)

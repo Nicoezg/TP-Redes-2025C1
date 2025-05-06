@@ -81,8 +81,8 @@ class LinearEndsTopo(Topo):
         s3 = self.addSwitch("s3")
 
         # set links between switches & router
-        self.addLink(s1, s2)
-        self.addLink(s2, s3, loss=10)
+        self.addLink(s1, s2, loss=10)
+        self.addLink(s2, s3)
 
         h1_server = self.addHost(
             "h1",
@@ -105,11 +105,11 @@ class LinearEndsTopo(Topo):
 
 def run():
     topo = LinearEndsTopo()
-    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch, controller=None)
+    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch)
     net.start()
 
-    tshark_proc1 = start_capture('s1-eth2', '/tmp/1-udp.pcapng')
-    tshark_proc2 = start_capture('s3-eth1', '/tmp/2-udp.pcapng')
+    tshark_proc1 = start_capture('s1-eth2', '/tmp/2-udp.pcapng')
+    tshark_proc2 = start_capture('s3-eth1', '/tmp/1-udp.pcapng')
 
     CLI(net)
 

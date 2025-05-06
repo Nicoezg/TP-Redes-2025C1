@@ -4,6 +4,7 @@ from mininet.topo import Topo
 from mininet.node import OVSSwitch
 from mininet.link import TCLink
 from mininet.log import setLogLevel
+from mininet.cli import CLI
 import subprocess
 import signal
 
@@ -107,16 +108,17 @@ class LinearEndsTopo(Topo):
 
 def run():
     topo = LinearEndsTopo()
-    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch, controller=None)
+    net = Mininet(topo=topo, link=TCLink, switch=OVSSwitch)
     net.start()
 
-    tshark_proc1 = start_capture('s1-eth2', '/tmp/1-tcp.pcapng')
-    tshark_proc2 = start_capture('s3-eth1', '/tmp/2-tcp.pcapng')
+    tshark_proc1 = start_capture('s1-eth2', '/tmp/2-tcp.pcapng')
+    tshark_proc2 = start_capture('s3-eth1', '/tmp/1-tcp.pcapng')
 
-    h1, h2 = net.get('h1'), net.get('h2')
+    #h1, h2 = net.get('h1'), net.get('h2')
+    #h1.cmd('iperf -s &')
+    #h2.cmd(f'iperf -c {h1.IP()} -l 1400 -n 10K -t 1')
 
-    h1.cmd('iperf -s &')
-    h2.cmd(f'iperf -c {h1.IP()} -l 1400 -n 10K -t 1')
+    CLI(net)
 
     tshark_proc1.send_signal(signal.SIGKILL)
     tshark_proc2.send_signal(signal.SIGKILL)

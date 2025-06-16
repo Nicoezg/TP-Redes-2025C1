@@ -1,0 +1,19 @@
+{
+    "port_dst": "80"
+},
+
+{
+    "host_src": "h1",
+    "port_dst": "5001",
+    "protocol": "udp",
+},
+
+{
+    "host_src": "h1",
+    "host_dst": "h2"
+},
+
+{
+    "host_src": "h2",
+    "host_dst": "h1"
+}

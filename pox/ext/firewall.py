@@ -28,7 +28,8 @@ policyFile = "%s/pox/pox/misc/firewall-policies.csv" % os.environ[ 'HOME' ]
 ''' Add your global variables here ... '''
 RULES_BY_DPID = {
     1: [
-        {"tp_dst": 80, "action":"deny"},
+        {"nw_proto": 6, "tp_dst": 80, "action": "deny"},
+        {"nw_proto": 17, "tp_dst": 80, "action": "deny"},
         {"nw_proto": 17, "nw_src": IPAddr("10.0.0.1"), "tp_dst": 5001, "action": "deny"},
     ],
 }
@@ -45,14 +46,15 @@ class Firewall (object):
         log.debug("Starting firewall instance for connection %s (switch ID: %s)",\
                 event.connection,\
                 dpidToStr(event.dpid))
-        
+
         # Keep track of connection to switch.
         self.connection = event.connection
 
         # Bind PacketIn event listener
         # (and eventually others?).
         event.connection.addListeners(self)
-    
+
+
     def _handle_PacketIn(self, event):
         in_port = event.port
         dpid = event.connection.dpid # Unique ID for the switch.
@@ -61,8 +63,36 @@ class Firewall (object):
         if not packet.parsed:
             log.warning("Ignoring incomplete packet")
             return
-        
-        # Extract basic fields
+
+        log.debug("Processing packet for connection %s (switch ID: %s)",\
+                self.connection,\
+                str(dpid))
+
+        fields = self.extract_fields(packet)
+
+        rules = RULES_BY_DPID.get(dpid)
+        if rules:
+            #log.debug("%s rules for dpid %s", str(len(rules)), str(dpid))
+            for rule in rules:
+                if self.check_matches(rule, fields):
+                    log.debug("Packet matched rule: %s", rule)
+                    if rule["action"] == "deny":
+                        self.drop_packet(event.ofp, in_port)
+                        self.install_flow(rule)
+                        return
+
+
+        # Default: allow/flood
+        #log.debug("Packet allowed through firewall")
+        msg = of.ofp_packet_out()
+        msg.data = event.ofp
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+        msg.in_port = in_port
+        self.connection.send(msg)
+
+
+    def extract_fields(self, packet):
+        # Basic fields
         fields = {
             "eth_type": packet.type,
             "nw_proto": None, # Transport protocol
@@ -72,10 +102,6 @@ class Firewall (object):
             "tp_dst": None, # dst port
         }
 
-        log.debug("Processing packet for connection %s (switch ID: %s)",\
-                self.connection,\
-                str(dpid))
-    
         if fields["eth_type"] == ethernet.IP_TYPE:
             ip_pkt = packet.payload
             fields["nw_proto"] = ip_pkt.protocol
@@ -87,26 +113,9 @@ class Firewall (object):
                 transport_pkt = ip_pkt.payload
                 fields["tp_src"] = transport_pkt.srcport
                 fields["tp_dst"] = transport_pkt.dstport
-                if fields.get("tp_dst") == 80:
-                    log.debug("Destined to port 80")
-        
-        rules = RULES_BY_DPID.get(dpid)
-        if rules:
-            log.debug("%s rules for dpid %s", str(len(rules)), str(dpid))
-            for rule in rules:
-                if self.check_matches(rule, fields):
-                    if rule["action"] == "deny":
-                        log.debug("Dropped packet due to rule: %s", rule)
-                        return
 
+        return fields
 
-        # Default: allow/flood
-        log.debug("Packet allowed through firewall")
-        msg = of.ofp_packet_out()
-        msg.data = event.ofp
-        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
-        msg.in_port = in_port
-        self.connection.send(msg)
 
     def check_matches(self, rule, fields):
         for field, val in rule.items():
@@ -117,6 +126,46 @@ class Firewall (object):
             if val != fields.get(field):
                 return False
         return True
+
+
+    def drop_packet(self, data, port):
+        msg = of.ofp_packet_out()
+        msg.data = data
+        msg.in_port = port
+        # No actions = drop
+        self.connection.send(msg)
+
+
+    def install_flow(self, rule):
+        if rule.get("action") != "deny":
+            log.warning("Non-deny actions not implemented")
+            return
+
+        msg = of.ofp_flow_mod()
+        match = of.ofp_match()
+        is_ip = False # Flag if rule is for IP packet
+
+        if "nw_src" in rule:
+            match.nw_src = rule["nw_src"]
+            is_ip = True
+        if "nw_dst" in rule:
+            match.nw_dst = rule["nw_dst"]
+            is_ip = True
+        if "nw_proto" in rule:
+            match.nw_proto = rule["nw_proto"]
+            is_ip = True
+            if "tp_src" in rule:
+                match.tp_src = rule["tp_src"]
+            if "tp_dst" in rule:
+                match.tp_dst = rule["tp_dst"]
+
+        if is_ip:
+            match.dl_type = ethernet.IP_TYPE
+
+        msg.match = match
+        msg.priority = 49152 # No idea how this field works
+        self.connection.send(msg)
+
     """
     def _handle_ConnectionUp (self, event):
 
@@ -145,7 +194,7 @@ class Firewall (object):
         msg.actions = []
         event.connection.send(msg)
     """
-               
+
 def launch ():
     '''
     Starting the Firewall module

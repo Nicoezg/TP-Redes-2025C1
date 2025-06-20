@@ -50,9 +50,16 @@ class Firewall (object):
         # Keep track of connection to switch.
         self.connection = event.connection
 
-        # Bind PacketIn event listener
-        # (and eventually others?).
+        # Bind PacketIn event listener.
         event.connection.addListeners(self)
+    
+        # Pre-install all rules on switch.
+        dpid = event.connection.dpid
+        rules = RULES_BY_DPID.get(dpid)
+        if rules:
+            for rule in rules:
+                self.install_flow(rule)
+            log.debug("Installed rules on switch %s", str(dpid))
 
 
     def _handle_PacketIn(self, event):

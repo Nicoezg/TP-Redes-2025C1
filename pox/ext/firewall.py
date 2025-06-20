@@ -15,26 +15,13 @@ from pox.lib.addresses import EthAddr
 from collections import namedtuple
 import os
 from pox.lib.addresses import IPAddr
-''' Add your imports here ... '''
-# Constants for Ethernet header values
 from pox.lib.packet.ethernet import ethernet
-# Constants for IPv4 header values
 from pox.lib.packet.ipv4 import ipv4
+import json
 
 
 log = core.getLogger()
-policyFile = "%s/pox/pox/misc/firewall-policies.csv" % os.environ[ 'HOME' ]
-
-''' Add your global variables here ... '''
-RULES_BY_DPID = {
-    1: [
-        {"nw_proto": 6, "tp_dst": 80, "action": "deny"},
-        {"nw_proto": 17, "tp_dst": 80, "action": "deny"},
-        {"nw_proto": 17, "nw_src": IPAddr("10.0.0.1"), "tp_dst": 5001, "action": "deny"},
-    ],
-}
-
-
+policyFile = "ext/firewall-policies.json"
 
 class Firewall (object):
     """
@@ -43,9 +30,26 @@ class Firewall (object):
     """
 
     def __init__ (self, event):
+        log.debug("Opening policy file with rules to install: %s", policyFile)
+        with open(policyFile) as f:
+            data = json.load(f)
+
+            switch_id = data["switch_id"]
+            rules = []
+
+            for rule in data["rules"]:
+                new_rule = dict(rule)
+                if "nw_src" in new_rule:
+                    new_rule["nw_src"] = IPAddr(new_rule["nw_src"])
+                rules.append(new_rule)
+
+            self.rules_by_dpid = {
+                switch_id: rules
+            }
         log.debug("Starting firewall instance for connection %s (switch ID: %s)",\
-                event.connection,\
+                event.connection, \
                 dpidToStr(event.dpid))
+    
 
         # Keep track of connection to switch.
         self.connection = event.connection
@@ -55,13 +59,45 @@ class Firewall (object):
     
         # Pre-install all rules on switch.
         dpid = event.connection.dpid
-        rules = RULES_BY_DPID.get(dpid)
+        rules = self.rules_by_dpid.get(dpid)
         if rules:
             for rule in rules:
                 self.install_flow(rule)
             log.debug("Installed rules on switch %s", str(dpid))
 
+    def install_flow(self, rule):
+        if rule.get("action") != "deny":
+            log.warning("Non-deny actions not implemented")
+            return
 
+        msg = of.ofp_flow_mod()
+        match = of.ofp_match()
+        is_ip = False # Flag if rule is for IP packet
+
+        if "nw_src" in rule:
+            match.nw_src = rule["nw_src"]
+            is_ip = True
+        if "nw_dst" in rule:
+            match.nw_dst = rule["nw_dst"]
+            is_ip = True
+        if "nw_proto" in rule:
+            match.nw_proto = rule["nw_proto"]
+            is_ip = True
+            if "tp_src" in rule:
+                match.tp_src = rule["tp_src"]
+            if "tp_dst" in rule:
+                match.tp_dst = rule["tp_dst"]
+
+        if is_ip:
+            match.dl_type = ethernet.IP_TYPE
+
+        msg.match = match
+        msg.priority = 49152
+        self.connection.send(msg)
+        
+
+
+    """     
     def _handle_PacketIn(self, event):
         in_port = event.port
         dpid = event.connection.dpid # Unique ID for the switch.
@@ -71,13 +107,9 @@ class Firewall (object):
             log.warning("Ignoring incomplete packet")
             return
 
-        log.debug("Processing packet for connection %s (switch ID: %s)",\
-                self.connection,\
-                str(dpid))
-
         fields = self.extract_fields(packet)
 
-        rules = RULES_BY_DPID.get(dpid)
+        rules = self.rules_by_dpid.get(dpid)
         if rules:
             #log.debug("%s rules for dpid %s", str(len(rules)), str(dpid))
             for rule in rules:
@@ -140,66 +172,7 @@ class Firewall (object):
         msg.data = data
         msg.in_port = port
         # No actions = drop
-        self.connection.send(msg)
-
-
-    def install_flow(self, rule):
-        if rule.get("action") != "deny":
-            log.warning("Non-deny actions not implemented")
-            return
-
-        msg = of.ofp_flow_mod()
-        match = of.ofp_match()
-        is_ip = False # Flag if rule is for IP packet
-
-        if "nw_src" in rule:
-            match.nw_src = rule["nw_src"]
-            is_ip = True
-        if "nw_dst" in rule:
-            match.nw_dst = rule["nw_dst"]
-            is_ip = True
-        if "nw_proto" in rule:
-            match.nw_proto = rule["nw_proto"]
-            is_ip = True
-            if "tp_src" in rule:
-                match.tp_src = rule["tp_src"]
-            if "tp_dst" in rule:
-                match.tp_dst = rule["tp_dst"]
-
-        if is_ip:
-            match.dl_type = ethernet.IP_TYPE
-
-        msg.match = match
-        msg.priority = 49152 # No idea how this field works
-        self.connection.send(msg)
-
-    """
-    def _handle_ConnectionUp (self, event):
-
-        # Drop all TCP traffic to port 80
-        msg = of.ofp_flow_mod()
-        msg.match.dl_type = 0x800
-        msg.match.nw_proto = 6  # TCP
-        msg.match.tp_dst = 80
-        msg.actions = []
-        event.connection.send(msg)
-
-        # Drop all UDP traffic to port 80
-        msg = of.ofp_flow_mod()
-        msg.match.dl_type = 0x800
-        msg.match.nw_proto = 17  # UDP
-        msg.match.tp_dst = 80
-        msg.actions = []
-        event.connection.send(msg)
-
-        # Drop UDP port 5001 traffic from 10.0.0.1 (h1 in mininet)
-        msg = of.ofp_flow_mod()
-        msg.match.dl_type = 0x800
-        msg.match.nw_proto = 17  # UDP
-        msg.match.nw_src = IPAddr("10.0.0.1")
-        msg.match.tp_dst = 5001
-        msg.actions = []
-        event.connection.send(msg)
+        self.connection.send(msg) 
     """
 
 def launch ():

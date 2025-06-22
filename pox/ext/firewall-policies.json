@@ -1,11 +1,11 @@
 {
     "switch_id": 1,
     "rules": [
-        {"nw_proto": 6, "tp_dst": 80, "action": "deny"},
-        {"nw_proto": 17, "tp_dst": 80, "action": "deny"},
-        {"nw_proto": 17, "nw_src": "10.0.0.1", "tp_dst": 5001, "action": "deny"},
-        {"nw_src":"10.0.0.1", "nw_dst":"10.0.0.2","action": "deny"},
-        {"nw_src":"10.0.0.2", "nw_dst":"10.0.0.1","action": "deny"}
+        {"protocol": "tcp", "port_dst": 80},
+        {"protocol": "udp", "port_dst": 80},
+        {"protocol": "udp", "ip_src": "10.0.0.1", "port_dst": 5001},
+        {"ip_src":"10.0.0.1", "ip_dst":"10.0.0.2"},
+        {"ip_src":"10.0.0.2", "ip_dst":"10.0.0.1"}
         
     ]
 }
